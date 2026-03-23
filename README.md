@@ -42,10 +42,10 @@ cp .env.example .env
 
 ```bash
 # All tests
-python3 -m pytest
+python3 -m pytest -v
 
 # API tests only
-python3 -m pytest api_tests/
+python3 -m pytest api_tests/ -v
 
 # UI tests only
 python3 -m pytest ui_tests/ --headed
