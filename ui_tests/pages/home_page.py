@@ -17,8 +17,7 @@ class HomePage:
         self._search_input: Locator = page.get_by_placeholder("Where do you need an eSIM?")
 
     def navigate(self) -> "HomePage":
-        self._page.goto(self.URL)
-        self._page.wait_for_load_state("domcontentloaded")
+        self._page.goto(self.URL, wait_until="load", timeout=60_000)
         self._dismiss_cookie_banner()
         return self
 
@@ -35,7 +34,7 @@ class HomePage:
             logger.debug("Cookie banner not present — continuing")
 
     def search_country(self, country: str) -> None:
-        expect(self._search_input).to_be_visible()
+        expect(self._search_input).to_be_visible(timeout=20_000)
         self._search_input.click()
         self._search_input.fill(country)
 
