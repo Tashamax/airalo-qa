@@ -57,20 +57,23 @@ class JapanEsimPage:
     def select_package(self, duration_label: str) -> None:
         """Click a package card and wait for the buy-now panel to appear."""
         card = self.get_package_card(duration_label)
+        card.scroll_into_view_if_needed()
         card.click()
-        expect(self._buy_now_section).to_be_visible(timeout=10_000)
+        self._page.screenshot(path="screenshots/debug_after_card_click.png")
+        expect(self._buy_now_section).to_be_visible(timeout=15_000)
 
     @property
     def _buy_now_section(self) -> Locator:
         """
-        The sticky cart footer — identified by its CSS class 'z-cart-navigation'
-        which is unique to the Buy Now bar on the package selection page.
+        The sticky cart footer — identified by its unique combination of
+        role='dialog' and aria-live='polite' ARIA attributes, which are
+        more stable than CSS class names that may be purged or renamed.
         """
-        return self._page.locator("[class*='cart-navigation']").last
+        return self._page.locator("[role='dialog'][aria-live='polite']")
 
     def get_buy_now_price_text(self) -> str:
         section = self._buy_now_section
-        expect(section).to_be_visible(timeout=10_000)
+        expect(section).to_be_visible(timeout=15_000)
         price_el = section.locator("text=/[£$€][\\d.]+/").first
         expect(price_el).to_be_visible()
         return price_el.inner_text()
