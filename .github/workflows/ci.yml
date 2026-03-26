@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run API tests
+        env:
+          AIRALO_CLIENT_ID: ${{ secrets.AIRALO_CLIENT_ID }}
+          AIRALO_CLIENT_SECRET: ${{ secrets.AIRALO_CLIENT_SECRET }}
+        run: python -m pytest api_tests/ -v --junit-xml=results/api-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: api-test-results
+          path: results/api-results.xml
+
+  ui-tests:
+    name: UI Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: playwright install chromium --with-deps
+
+      - name: Run UI tests
+        run: |
+          mkdir -p screenshots results
+          python -m pytest ui_tests/ -v --junit-xml=results/ui-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: ui-test-results
+          path: results/ui-results.xml
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: screenshots
+          path: screenshots/
