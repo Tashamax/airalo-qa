@@ -37,7 +37,6 @@ cp .env.example .env
 ```
 
 ---
-
 ## Running Tests
 
 ```bash
@@ -50,7 +49,6 @@ python3 -m pytest api_tests/ -v
 # UI tests only
 python3 -m pytest ui_tests/ --headed
 ```
-
 ---
 
 ## Test Coverage
