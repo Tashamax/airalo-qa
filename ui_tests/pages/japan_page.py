@@ -58,12 +58,15 @@ class JapanEsimPage:
         """Click a package card and wait for the buy-now panel to appear."""
         card = self.get_package_card(duration_label)
         card.click()
+        self._page.screenshot(path="screenshots/debug_after_card_click.png")
         expect(self._buy_now_button).to_be_visible(timeout=10_000)
 
     @property
     def _buy_now_button(self) -> Locator:
-        """The Buy Now button — matched by text regardless of element type."""
-        return self._page.get_by_text("Buy now", exact=True).first
+        """The Buy Now button — case-insensitive regex match on text."""
+        return self._page.get_by_text(
+            re.compile(r"buy\s+now", re.IGNORECASE)
+        ).first
 
     @property
     def _buy_now_section(self) -> Locator:
@@ -73,7 +76,7 @@ class JapanEsimPage:
         brittle parent traversal with locator('..').
         """
         return self._page.locator("div, footer, section").filter(
-            has=self._page.get_by_text("Buy now", exact=True)
+            has=self._page.get_by_text(re.compile(r"buy\s+now", re.IGNORECASE))
         ).last
 
     def get_buy_now_price_text(self) -> str:
