@@ -14,10 +14,16 @@ class HomePage:
 
     def __init__(self, page: Page) -> None:
         self._page = page
-        # Partial match covers locale variants and minor copy changes
-        self._search_input: Locator = page.get_by_placeholder(
-            re.compile(r"eSIM|country|where", re.IGNORECASE)
-        )
+        # Airalo uses a custom search component — the hint text is a <span>
+        # overlay, not a real placeholder attribute. Use role/CSS selectors
+        # that target the actual input element regardless of visual styling.
+        self._search_input: Locator = page.locator(
+            "input[placeholder*='eSIM' i], "
+            "input[placeholder*='where' i], "
+            "[role='combobox'], "
+            "[role='searchbox'], "
+            "input[type='search']"
+        ).first
 
     def navigate(self) -> "HomePage":
         self._page.goto(self.URL, wait_until="load", timeout=60_000)
