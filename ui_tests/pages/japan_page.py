@@ -1,0 +1,83 @@
+import re
+import logging
+
+from playwright.sync_api import Page, Locator
+from playwright.sync_api import expect
+
+logger = logging.getLogger(__name__)
+
+
+class JapanEsimPage:
+
+    def __init__(self, page: Page) -> None:
+        self._page = page
+
+    def wait_for_page(self) -> "JapanEsimPage":
+        self._page.wait_for_load_state("domcontentloaded")
+        return self
+
+    def select_plan_tab(self, tab_name: str) -> None:
+        """Click a plan type tab (e.g. 'Unlimited') and wait for cards to load."""
+        tab = self._page.get_by_role("tab", name=re.compile(tab_name, re.IGNORECASE))
+        if not tab.is_visible():
+            # Fallback: some sites render tabs as buttons or links
+            tab = self._page.locator("button, a").filter(
+                has_text=re.compile(rf"^{re.escape(tab_name)}$", re.IGNORECASE)
+            ).first
+        expect(tab).to_be_visible()
+        tab.click()
+        # Wait for at least one package card to be visible before proceeding
+        expect(self._package_cards).not_to_have_count(0)
+
+    @property
+    def _package_cards(self) -> Locator:
+        """All visible package cards on the page."""
+        return self._page.locator("div, li, article").filter(
+            has=self._page.locator("text=/[£$€][\\d.]+/")
+        )
+
+    def get_package_card(self, duration_label: str) -> Locator:
+        """
+        Find the package card for a given duration (e.g. '7 days').
+        Uses a container filter instead of XPath sibling traversal.
+        """
+        card = self._page.locator("div, li, article").filter(
+            has=self._page.locator(f"text=/^{re.escape(duration_label)}$/i")
+        ).filter(
+            has=self._page.locator("text=/[£$€][\\d.]+/")
+        ).first
+        expect(card).to_be_visible()
+        return card
+
+    def get_card_price_text(self, card: Locator) -> str:
+        price_el = card.locator("text=/[£$€][\\d.]+/").last
+        expect(price_el).to_be_visible()
+        return price_el.inner_text()
+
+    def select_package(self, duration_label: str) -> None:
+        """Click a package card and wait for the buy-now panel to appear."""
+        card = self.get_package_card(duration_label)
+        card.click()
+        expect(self._buy_now_section).to_be_visible()
+
+    @property
+    def _buy_now_section(self) -> Locator:
+        """
+        The sticky footer containing the Buy Now button and total price.
+        Found by scoping to a container that holds the Buy Now button —
+        avoids brittle parent traversal with locator('..').
+        """
+        return self._page.locator("div, footer, section").filter(
+            has=self._page.get_by_role(
+                "button", name=re.compile(r"buy now", re.IGNORECASE)
+            )
+        ).last
+
+    def get_buy_now_price_text(self) -> str:
+        price_el = self._buy_now_section.locator("text=/[£$€][\\d.]+/").first
+        expect(price_el).to_be_visible()
+        return price_el.inner_text()
+
+    def take_screenshot(self, path: str) -> None:
+        self._page.screenshot(path=path, full_page=False)
+        logger.info("Screenshot saved to %s", path)

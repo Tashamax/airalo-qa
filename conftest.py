@@ -9,11 +9,3 @@ def pytest_report_teststatus(report, config):
             return report.outcome, "❌", "FAILED"
         elif report.skipped:
             return report.outcome, "⚠️", "SKIPPED"
-
-
-def pytest_collection_modifyitems(items):
-    for item in items:
-        parts = item.nodeid.split("::")
-        class_name = parts[-2] if len(parts) > 2 else ""
-        test_name = parts[-1].replace("test_", "").replace("_", " ")
-        item._nodeid = f"{class_name} → {test_name}"
