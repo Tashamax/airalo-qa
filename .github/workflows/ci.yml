@@ -54,7 +54,9 @@ jobs:
         run: playwright install chromium --with-deps
 
       - name: Run UI tests
-        run: python -m pytest ui_tests/ -v --junit-xml=results/ui-results.xml
+        run: |
+          mkdir -p screenshots results
+          python -m pytest ui_tests/ -v --junit-xml=results/ui-results.xml
 
       - name: Upload test results
         if: always()
@@ -63,8 +65,8 @@ jobs:
           name: ui-test-results
           path: results/ui-results.xml
 
-      - name: Upload screenshots on failure
-        if: failure()
+      - name: Upload screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots

@@ -14,7 +14,10 @@ class HomePage:
 
     def __init__(self, page: Page) -> None:
         self._page = page
-        self._search_input: Locator = page.get_by_placeholder("Where do you need an eSIM?")
+        # Partial match covers locale variants and minor copy changes
+        self._search_input: Locator = page.get_by_placeholder(
+            re.compile(r"eSIM|country|where", re.IGNORECASE)
+        )
 
     def navigate(self) -> "HomePage":
         self._page.goto(self.URL, wait_until="load", timeout=60_000)

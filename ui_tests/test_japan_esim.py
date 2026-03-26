@@ -8,7 +8,15 @@ from ui_tests.utils import extract_price
 
 @pytest.fixture(scope="session")
 def context(browser):
-    ctx = browser.new_context(permissions=[])
+    ctx = browser.new_context(
+        permissions=[],
+        user_agent=(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        viewport={"width": 1920, "height": 1080},
+        locale="en-US",
+    )
     yield ctx
     ctx.close()
 
@@ -27,6 +35,7 @@ def test_japan_7day_unlimited_price_matches_buy_now(page: Page):
     """
     home = HomePage(page)
     home.navigate()
+    page.screenshot(path="screenshots/debug_after_navigate.png")
     home.search_country("Japan")
     home.select_country_result("Japan")
 
