@@ -14,16 +14,10 @@ class HomePage:
 
     def __init__(self, page: Page) -> None:
         self._page = page
-        # Airalo uses a custom search component — the hint text is a <span>
-        # overlay, not a real placeholder attribute. Use role/CSS selectors
-        # that target the actual input element regardless of visual styling.
-        self._search_input: Locator = page.locator(
-            "input[placeholder*='eSIM' i], "
-            "input[placeholder*='where' i], "
-            "[role='combobox'], "
-            "[role='searchbox'], "
-            "input[type='search']"
-        ).first
+        # Airalo wraps the search in a div[role='combobox'] — the actual
+        # <input> is a child of that container, not the combobox itself.
+        self._combobox: Locator = page.locator("[role='combobox']").first
+        self._search_input: Locator = page.locator("[role='combobox'] input").first
 
     def navigate(self) -> "HomePage":
         self._page.goto(self.URL, wait_until="load", timeout=60_000)
@@ -43,8 +37,11 @@ class HomePage:
             logger.debug("Cookie banner not present — continuing")
 
     def search_country(self, country: str) -> None:
-        expect(self._search_input).to_be_visible(timeout=20_000)
-        self._search_input.click()
+        # Click the combobox container to open/activate the search
+        expect(self._combobox).to_be_visible(timeout=20_000)
+        self._combobox.click()
+        # Fill the actual <input> that becomes active inside the combobox
+        expect(self._search_input).to_be_visible(timeout=10_000)
         self._search_input.fill(country)
 
     def select_country_result(self, country: str) -> None:
