@@ -91,6 +91,8 @@ def order(auth_token: str) -> dict:
         headers={**DEFAULT_HEADERS, "Authorization": f"Bearer {auth_token}"},
     )
     assert response.status_code == 200, f"Order failed: {response.text}"
+    # Validate meta.message here to avoid a separate API call in tests
+    assert _extract(response, "meta", "message"), "Order response missing meta.message"
     return _extract(response, "data")
 
 
@@ -138,22 +140,18 @@ class TestSubmitOrder:
         for sim in order["sims"]:
             assert sim.get("iccid"), f"Missing iccid in SIM: {sim}"
 
-    def test_order_response_message_is_success(self, auth_token: str):
-        response = requests.post(
-            f"{BASE_URL}/orders",
-            data={"quantity": 1, "package_id": PACKAGE_ID},
-            headers={**DEFAULT_HEADERS, "Authorization": f"Bearer {auth_token}"},
-        )
-        assert response.status_code == 200
-        message = _extract(response, "meta", "message")
-        assert message, "meta.message should be non-empty on a successful order"
-
 
 # ── eSIM Detail Tests ─────────────────────────────────────────────────────────
 
 class TestGetEsimDetails:
 
-    def test_each_esim_is_retrievable(self, order: dict, headers: dict):
+    def test_each_esim_is_retrievable_with_required_properties(self, order: dict, headers: dict):
+        """
+        Fetches each eSIM once and validates status code, iccid, meta.message,
+        and required properties in a single pass to avoid redundant API calls
+        that can trigger rate limiting.
+        """
+        required_fields = {"iccid", "lpa", "qrcode", "apn_type", "apn_value"}
         for sim in order["sims"]:
             response = requests.get(
                 f"{BASE_URL}/sims/{sim['iccid']}",
@@ -170,17 +168,6 @@ class TestGetEsimDetails:
             assert _extract(response, "meta", "message"), (
                 f"meta.message missing for SIM {sim['iccid']}"
             )
-
-    def test_each_esim_has_required_properties(self, order: dict, headers: dict):
-        required_fields = {"iccid", "lpa", "qrcode", "apn_type", "apn_value"}
-        for sim in order["sims"]:
-            response = requests.get(
-                f"{BASE_URL}/sims/{sim['iccid']}",
-                headers=headers,
-                params={"include": ESIM_INCLUDE},
-            )
-            assert response.status_code == 200
-            data = _extract(response, "data")
             missing = required_fields - set(data.keys())
             assert not missing, (
                 f"SIM {sim['iccid']} is missing required fields: {missing}\n"

@@ -14,22 +14,19 @@ class JapanEsimPage:
 
     def wait_for_page(self) -> "JapanEsimPage":
         self._page.wait_for_load_state("networkidle", timeout=30_000)
-        # Scroll down so the plan tabs and package cards enter the viewport
+        # Scroll down so plan tabs and package cards enter the viewport
         self._page.keyboard.press("PageDown")
         return self
 
     def select_plan_tab(self, tab_name: str) -> None:
-        """Click a plan type tab (e.g. 'Unlimited') and wait for cards to load."""
-        # Airalo renders the Standard/Unlimited toggle as span/div elements,
-        # not semantic <button> or <a> tags — use a broad element search
-        tab = self._page.locator(
-            "button, a, span, div, label, [role='tab'], [role='button']"
-        ).filter(
-            has_text=re.compile(rf"^{re.escape(tab_name)}$", re.IGNORECASE)
-        ).first
+        """
+        Click a plan type tab (e.g. 'Unlimited').
+        Uses get_by_text(exact=True) which matches any element type whose
+        full text is exactly tab_name — no DOM structure assumptions needed.
+        """
+        tab = self._page.get_by_text(tab_name, exact=True).first
         expect(tab).to_be_visible(timeout=10_000)
         tab.click()
-        # Wait for at least one package card to be visible before proceeding
         expect(self._package_cards).not_to_have_count(0)
 
     @property
@@ -67,8 +64,8 @@ class JapanEsimPage:
     def _buy_now_section(self) -> Locator:
         """
         The sticky footer containing the Buy Now button and total price.
-        Found by scoping to a container that holds the Buy Now button —
-        avoids brittle parent traversal with locator('..').
+        Scoped to the container holding the Buy Now button — avoids
+        brittle parent traversal with locator('..').
         """
         return self._page.locator("div, footer, section").filter(
             has=self._page.get_by_role(
