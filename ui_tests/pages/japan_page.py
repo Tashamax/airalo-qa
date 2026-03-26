@@ -58,29 +58,20 @@ class JapanEsimPage:
         """Click a package card and wait for the buy-now panel to appear."""
         card = self.get_package_card(duration_label)
         card.click()
-        self._page.screenshot(path="screenshots/debug_after_card_click.png")
-        expect(self._buy_now_button).to_be_visible(timeout=10_000)
-
-    @property
-    def _buy_now_button(self) -> Locator:
-        """The Buy Now button — case-insensitive regex match on text."""
-        return self._page.get_by_text(
-            re.compile(r"buy\s+now", re.IGNORECASE)
-        ).first
+        expect(self._buy_now_section).to_be_visible(timeout=10_000)
 
     @property
     def _buy_now_section(self) -> Locator:
         """
-        The sticky footer containing the Buy Now button and total price.
-        Scoped to a container that holds the Buy Now text — avoids
-        brittle parent traversal with locator('..').
+        The sticky cart footer — identified by its CSS class 'z-cart-navigation'
+        which is unique to the Buy Now bar on the package selection page.
         """
-        return self._page.locator("div, footer, section").filter(
-            has=self._page.get_by_text(re.compile(r"buy\s+now", re.IGNORECASE))
-        ).last
+        return self._page.locator("[class*='cart-navigation']").last
 
     def get_buy_now_price_text(self) -> str:
-        price_el = self._buy_now_section.locator("text=/[£$€][\\d.]+/").first
+        section = self._buy_now_section
+        expect(section).to_be_visible(timeout=10_000)
+        price_el = section.locator("text=/[£$€][\\d.]+/").first
         expect(price_el).to_be_visible()
         return price_el.inner_text()
 
