@@ -58,18 +58,23 @@ class JapanEsimPage:
         """Click a package card and wait for the buy-now panel to appear."""
         card = self.get_package_card(duration_label)
         card.scroll_into_view_if_needed()
-        card.click()
+        # dispatch_event ensures the JS click handler fires in headless mode
+        card.dispatch_event("click")
         self._page.screenshot(path="screenshots/debug_after_card_click.png")
+        logger.info("URL after card click: %s", self._page.url)
         expect(self._buy_now_section).to_be_visible(timeout=15_000)
 
     @property
     def _buy_now_section(self) -> Locator:
         """
-        The sticky cart footer — identified by its unique combination of
-        role='dialog' and aria-live='polite' ARIA attributes, which are
-        more stable than CSS class names that may be purged or renamed.
+        The sticky cart footer — mounted dynamically via Nuxt teleport.
+        Tries ARIA attributes, data-testid, and class name in order.
         """
-        return self._page.locator("[role='dialog'][aria-live='polite']")
+        return self._page.locator(
+            "[role='dialog'][aria-live='polite'], "
+            "[data-testid*='cart-navigation'], "
+            "[class*='cart-navigation']"
+        ).last
 
     def get_buy_now_price_text(self) -> str:
         section = self._buy_now_section
