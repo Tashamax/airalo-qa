@@ -58,19 +58,22 @@ class JapanEsimPage:
         """Click a package card and wait for the buy-now panel to appear."""
         card = self.get_package_card(duration_label)
         card.click()
-        expect(self._buy_now_section).to_be_visible()
+        expect(self._buy_now_button).to_be_visible(timeout=10_000)
+
+    @property
+    def _buy_now_button(self) -> Locator:
+        """The Buy Now button — matched by text regardless of element type."""
+        return self._page.get_by_text("Buy now", exact=True).first
 
     @property
     def _buy_now_section(self) -> Locator:
         """
         The sticky footer containing the Buy Now button and total price.
-        Scoped to the container holding the Buy Now button — avoids
+        Scoped to a container that holds the Buy Now text — avoids
         brittle parent traversal with locator('..').
         """
         return self._page.locator("div, footer, section").filter(
-            has=self._page.get_by_role(
-                "button", name=re.compile(r"buy now", re.IGNORECASE)
-            )
+            has=self._page.get_by_text("Buy now", exact=True)
         ).last
 
     def get_buy_now_price_text(self) -> str:
