@@ -13,18 +13,21 @@ class JapanEsimPage:
         self._page = page
 
     def wait_for_page(self) -> "JapanEsimPage":
-        self._page.wait_for_load_state("domcontentloaded")
+        self._page.wait_for_load_state("networkidle", timeout=30_000)
+        # Scroll down so the plan tabs and package cards enter the viewport
+        self._page.keyboard.press("PageDown")
         return self
 
     def select_plan_tab(self, tab_name: str) -> None:
         """Click a plan type tab (e.g. 'Unlimited') and wait for cards to load."""
-        tab = self._page.get_by_role("tab", name=re.compile(tab_name, re.IGNORECASE))
-        if not tab.is_visible():
-            # Fallback: some sites render tabs as buttons or links
-            tab = self._page.locator("button, a").filter(
-                has_text=re.compile(rf"^{re.escape(tab_name)}$", re.IGNORECASE)
-            ).first
-        expect(tab).to_be_visible()
+        # Airalo renders the Standard/Unlimited toggle as span/div elements,
+        # not semantic <button> or <a> tags — use a broad element search
+        tab = self._page.locator(
+            "button, a, span, div, label, [role='tab'], [role='button']"
+        ).filter(
+            has_text=re.compile(rf"^{re.escape(tab_name)}$", re.IGNORECASE)
+        ).first
+        expect(tab).to_be_visible(timeout=10_000)
         tab.click()
         # Wait for at least one package card to be visible before proceeding
         expect(self._package_cards).not_to_have_count(0)
